@@ -1,0 +1,40 @@
+{
+    "root_question": "what are the ships surrounding india and what of them has imo=9987654",
+    "plan": [
+        {
+            "id": 1,
+            "query": "What are the vessels currently surrounding India?",
+            "endpoints": [
+                "vesselsInArea"
+            ],
+            "arguments": [
+                "input"
+            ],
+            "subquestions": [
+                2
+            ]
+        },
+        {
+            "id": 2,
+            "query": "What is the polygonId for the area surrounding India?",
+            "endpoints": [
+                "areas"
+            ],
+            "arguments": [
+                "filter"
+            ],
+            "subquestions": []
+        },
+        {
+            "id": 3,
+            "query": "Does any of the surrounding vessels have the IMO number 9987654?",
+            "endpoints": [
+                "vesselsByIMOs"
+            ],
+            "arguments": [
+                "imos"
+...
+            ]
+        }
+    ]
+}

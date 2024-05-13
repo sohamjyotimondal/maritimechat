@@ -1,6 +1,6 @@
 import streamlit as st
 from decomposer import Decomposer
-st.title("Maritime insights :baloon:")
+st.title("Maritime insights ")
 decomposer=Decomposer()
 
 # Initialize chat history
@@ -9,9 +9,13 @@ if "messages" not in st.session_state:
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
+    if message["role"] == "user":
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    elif message["role"] == "assistant":
+        with st.chat_message(message["role"]):
+            st.json(message["content"])
+    
 # React to user input
 if prompt := st.chat_input("What is up?"):
     # Display user message in chat message container

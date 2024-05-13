@@ -1,18 +1,25 @@
-from langchain_openai import ChatOpenAI
-import os
-from dotenv import load_dotenv
-from tools import *
+import streamlit as st
+from decomposer import Decomposer
+st.title("Maritime insights :baloon:")
+decomposer=Decomposer()
 
-from langchain.tools.render import render_text_description
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-load_dotenv()
+# Display chat messages from history on app rerun
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-api_key = os.getenv("OPENAI_API_KEY")
-
-class chatBot:
-    def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4", api_key=api_key,temperature=0)
-
-    def get_response(self, message):
-        response = self.chat.get_response(message)
-        return response
+# React to user input
+if prompt := st.chat_input("What is up?"):
+    # Display user message in chat message container
+    st.chat_message("user").markdown(prompt)
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    response = decomposer.decompose_question(prompt)
+    with st.chat_message("assistant"):
+        st.json(response.model_dump_json(indent=4))
+    # Add assistant response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response.model_dump_json(indent=4)})

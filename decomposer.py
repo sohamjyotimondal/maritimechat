@@ -67,7 +67,7 @@ class Decomposer():
         retrival = self.client.chat.completions.create(
             model="gpt-4-turbo",
             response_model=QueryPlan,
-            
+            temperature=0,
             messages= [
                 {
                     "role": "system",
@@ -85,7 +85,9 @@ class Decomposer():
         vesselByIMO(imo: String!): VesselIntelligence
 
         """Query - returns information on a multiple vessels by their IMO"""
-        vesselsByIMOs(imos: [String!]!): [VesselIntelligence]
+        vesselsByIMOs(imos:
+        Name	Type	Description
+        imos	[String!]!	The Integrated Marine Observing System (IMOS) unique ID.): [VesselIntelligence]
         vesselsByMMSI(mmsi: String!): [VesselIntelligence!]!
         portExpectedArrivals(input: PortExpectedArrivalsInput!): PortExpectedArrivalsConnection!
         vesselsInPort(input: VesselsInPortInput!): VesselsInPortConnection!
@@ -96,7 +98,14 @@ class Decomposer():
         The API requires selection of a user defined area and selected time range 
         and returns a list of vessels that transmitted in that selected location and selected time
         """
-        vesselsInArea(input: VesselsInAreaInput!): VesselsInAreaConnection!
+        vesselsInArea(input: 
+            Name	Type	Description
+            includePropertyChanges	Boolean!	Whether the property changes which occurred within the timeline are included in the returned results.
+            limit	PositiveInt!	The maximal number of records to return.
+            offset	NonNegativeInt!	The number of returned records to skip from the beginning of the record list.
+            polygon	GeoJSONPolygonGeometryScalar	The polygon of the vessels whose behavioral timeline is returned.
+            timeRange	ClosedDateTimeRangeInput!	The time range within which the returned behavioral timelines have occurred.):
+           VesselsInAreaConnection!
         vesselsCurrentlyInArea(input: VesselsCurrentlyInAreaInput!): VesselsCurrentlyInAreaConnection!
         riskyVesselsInArea(input: RiskyVesselsInAreaInput!): RiskyVesselsInAreaConnection!
         getActivitiesByDatesAndPolygon(type: ActivityTypes!, timeRange: DateTimeRange!, polygonId: ObjectId!): [Activity]

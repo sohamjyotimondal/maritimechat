@@ -15,7 +15,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 class chatBot:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o", api_key=api_key,temperature=0)
+        self.llm = ChatOpenAI(model="gpt-4", api_key=api_key,temperature=0)
         self.chat_history = [AIMessage(content="Hello! How can I assist you today?")]
         agent = create_structured_chat_agent(self.llm, tools, prompt=self._makeprompt_(self.chat_history))
         self.chatbot = AgentExecutor(agent=agent,tools=tools, verbose=True,return_intermediate_steps=True,
@@ -36,61 +36,62 @@ class chatBot:
             The prompt to be used by the chatbot to ask the user for input and to answer the question'''
         
         prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", """
-                You are an maritime assistant made by the Pythian team and only answer to maritime questions and questions about vessels
-                    If you do not have a tool to answer the question break down the questions using decomposer tool to finally reach the answer.
-                            If any information you need to answer the question is missing ask from the user then answer the question 
-                    Respond to the human as helpfully and accurately as possible. You have access to the following tools:
+                [
+                    ("system", """
+                    You are an maritime assistant made by the Pythian team and only answer to maritime questions and questions about vessels
+                        If you do not have a tool to answer the question break down the questions using decomposer tool to finally reach the answer.
+                                If any information you need to answer the question is missing ask from the user then answer the question 
+                        Respond to the human as helpfully and accurately as possible. You have access to the following tools:
 
-        {tools}
-        If you reach the final answer, respond with a paragraph that contains the final answer.
-        Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
+            {tools}
 
-        Valid "action" values: "Final Answer" or {tool_names}
+            Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
 
-        Provide only ONE action per $JSON_BLOB, as shown:
+            Valid "action" values: "Final Answer" or {tool_names}
 
-        ```
-        {{
-        "action": $TOOL_NAME,
-        "action_input": $INPUT
-        }}
-        ```
+            Provide only ONE action per $JSON_BLOB, as shown:
 
-        Follow this format:
+            ```
+            {{
+            "action": $TOOL_NAME,
+            "action_input": $INPUT
+            }}
+            ```
 
-        Question: input question to answer
-        Thought: consider previous and subsequent steps
-        Action:
-        ```
-        $JSON_BLOB
-        ```
-        Observation: action result
-        ... (repeat Thought/Action/Observation N times)
-        Thought: I know what to respond
-        Action:
-        ```
-        {{
-        "action": "Final Answer",
-        "action_input": "Final response to human". Invalid or incomplete response can also be a final response as data might be unavailable in many cases
-        }}
+            Follow this format:
 
-        """),
+            Question: input question to answer
+            Thought: consider previous and subsequent steps
+            Action:
+            ```
+            $JSON_BLOB
+            ```
+            Observation: action result
+            ... (repeat Thought/Action/Observation N times only if you cannot reach the answer. If the answer is a paragraph you have reached the answer.)
+            Thought: I know what to respond
+            Action:
+            ```
+            {{
+            "action": "Final Answer",
+            "action_input": "Final response to human"
+            }}
 
-                ("human", """{input} 
-                {agent_scratchpad}
-                Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate Invalid data or incomplete data is also valid that is important to remeber as data might not always be available.
-                  Format is Action:```$JSON_BLOB```then Observation  """)
-                # ("system", "The  history of the chat")
-                
-            ]
-        )
+            """),
+
+                    ("human", """{input} 
+                    
+                    chat history: 
+                    {agent_scratchpad} 
+                    Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate incomplete response or invalid response is also a good response. Format is Action:```$JSON_BLOB```then Observation"""),
+                    ("system", "The input arguments are always json blob but the output is not necessarily json so act accordingly to take the best bath to provide an answer in minimal steps")
+                    
+                ]
+            )
         prompt = prompt.partial(
-            agent_scratchpad=(chat_history),
-            tools=render_text_description(tools),
-            tool_names=", ".join([t.name for t in tools]),
-        )
+                agent_scratchpad=(chat_history),
+                tools=render_text_description(tools),
+                tool_names=", ".join([t.name for t in tools]),
+            )
         return prompt
     
     def _updatechat_history_(self,response):

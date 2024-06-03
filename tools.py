@@ -54,12 +54,13 @@ class vesselInput(BaseModel):
 
     
 class vesselsByImos(BaseTool):
+    '''This tool is used to get the details of a list of vessels by their imo numbers. The input is a list of imo numbers. The output is a list of dictionaries with the details of the vessels.S'''
     name="vesselsByImos"
     description="This tool is used to get the risk data about a vessel by its imo number. Use when the imo number is given"
     
 
     def _run(self, imos: vesselInput):
-        if imos.imos is None:
+        if imos is None:
             return "Ask user this question : What is the imo number of the vessel you want to get the details of?"
         else :
             url = os.getenv("URL")
@@ -68,32 +69,32 @@ class vesselsByImos(BaseTool):
             interval = os.getenv("INTERVAL")
             query=Query(GraphQLClient(url, clientID, client_secret,interval=interval))
             data=[]
-            for imo in imos.imos:
-                response=query.check_risk(imo)
+            for imo_ in imos:
+                response=query.check_risk(imo_)
                 response=response.json()
                 if response['data']['vesselByIMO'] is None:
-                    return {"data":{"response":f"No data found for the given IMO number {imo} as it is wrong ask user to provide a valid imo number"}}
+                    return {"data":{"response":f"No data found for the given IMO number {imo_} as it is wrong ask user to provide a valid imo number"}}
                 else:
-                    data.append(response['data']['vesselByIMO'])
-            return data
+                    data.append(response['data'])
+            return {"data":str(data)}
             
-class areaInput(BaseModel):
-    area: str = Field(description="The area to get the polygon ids of")
-    areaType: str = Field(description="The type of area is a 'Port' or a 'Country'")
 
 class getAreaPolygonId(BaseTool):
-    name="Getareapolygoinid"
+    '''Use this to get the polygon id of a given area.
+    Mention the areatype as 'Port' or 'Country' and the area as the name of the place s
+    it is absolutely necessary'''
+    name="getAreaPolygonId"
     description="This tool is used to get a list of polygon ids of any given area. Use when the name of a place is given"
 
 
-    def _run(self, area: areaInput):
-        if area.area is None:
+    def _run(self, area: str, areaType: str):
+        if area is None:
             return "Ask user this question : What Areas do you want the search to be in?"
         else :
-            if area.areaType.lower() == "port":
-                return "5358fc78b68ca120a07dbb89"
-            elif area.areaType.lower() == "country":
-                return "5358fc78b68ca120a07dbb89"
+            if area.lower() == "port":
+                return {"data":{"response":"5358fc78b68ca120a07dbb89"}}
+            elif areaType.lower() == "country":
+                return {"data":{"response":"5358fc78b68ca120a07dbb89"}}
 
 class Decompose(BaseTool):
     name="Decomposequestion"
@@ -105,4 +106,5 @@ class Decompose(BaseTool):
         response = decomposer.decompose_question(question)
         return response.model_dump_json()
     
-tools=[getAreaPolygonId(),Decompose(),vesselsByImos()]
+alltools=[getAreaPolygonId(),Decompose(),vesselsByImos()]
+decomposetools=[Decompose()]

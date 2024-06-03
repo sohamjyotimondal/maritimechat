@@ -50,7 +50,7 @@ class Answer(BaseTool):
         return "rajmohini1"
 
 class vesselInput(BaseModel):
-    imo: str = Field(description="The imo number of the vessel to get the details of")
+    imos: List[str] = Field(description="The imo numbers of the vessels to get the details of")
 
     
 class vesselsByImos(BaseTool):
@@ -58,8 +58,8 @@ class vesselsByImos(BaseTool):
     description="This tool is used to get the risk data about a vessel by its imo number. Use when the imo number is given"
     
 
-    def _run(self, imo: vesselInput):
-        if imo is None:
+    def _run(self, imos: vesselInput):
+        if imos.imos is None:
             return "Ask user this question : What is the imo number of the vessel you want to get the details of?"
         else :
             url = os.getenv("URL")
@@ -67,28 +67,37 @@ class vesselsByImos(BaseTool):
             client_secret = os.getenv("CLIENT_SECRET")
             interval = os.getenv("INTERVAL")
             query=Query(GraphQLClient(url, clientID, client_secret,interval=interval))
-            response=query.check_risk(imo)
-            response=response.json()
-            if response['data']['vesselByIMO'] is None:
-                return {"data":{"response":"No data found for the given IMO number as it is wrong ask user to provide a valid imo number"}}
-            else:
-                return response
+            data=[]
+            for imo in imos.imos:
+                response=query.check_risk(imo)
+                response=response.json()
+                if response['data']['vesselByIMO'] is None:
+                    return {"data":{"response":f"No data found for the given IMO number {imo} as it is wrong ask user to provide a valid imo number"}}
+                else:
+                    data.append(response['data']['vesselByIMO'])
+            return data
             
+class areaInput(BaseModel):
+    area: str = Field(description="The area to get the polygon ids of")
+    areaType: str = Field(description="The type of area is a 'Port' or a 'Country'")
 
-class Getareapolygoinid(BaseTool):
+class getAreaPolygonId(BaseTool):
     name="Getareapolygoinid"
     description="This tool is used to get a list of polygon ids of any given area. Use when the name of a place is given"
-    area: Optional[str] = Field(description="The area to get the polygon ids of")
 
-    def _run(self, area: Optional[str] = None):
-        if area is None:
+
+    def _run(self, area: areaInput):
+        if area.area is None:
             return "Ask user this question : What Areas do you want the search to be in?"
         else :
-            return "5358fc78b68ca120a07dbb89"
-        
+            if area.areaType.lower() == "port":
+                return "5358fc78b68ca120a07dbb89"
+            elif area.areaType.lower() == "country":
+                return "5358fc78b68ca120a07dbb89"
+
 class Decompose(BaseTool):
     name="Decomposequestion"
-    description="always Use this tool to first decompose a question when it is regarding maritime insights and vessel risk or location into subquestions that can be answered by the graphql endpoint. Use the answer tool to answer each subquestion"
+    description="always Use this tool to first decompose a question when it is regarding maritime insights and vessel risk or location into subquestions that can be answered by the graphql endpoint."
     # question: str = Field(description="The question to decompose")
 
     def _run(self,question):
@@ -96,4 +105,4 @@ class Decompose(BaseTool):
         response = decomposer.decompose_question(question)
         return response.model_dump_json()
     
-tools=[Getareapolygoinid(),Decompose(),vesselsByImos()]
+tools=[getAreaPolygonId(),Decompose(),vesselsByImos()]

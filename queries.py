@@ -230,3 +230,45 @@ def activities_query_string()->str:
     totalCount
   }
 }'''
+
+def vessels_in_port_query_string():
+  return '''query VesselsInPort($input: VesselsInPortInput!) {
+  vesselsInPort(input: $input) {
+    nodes {
+      name
+      imo
+      mmsi
+      class
+      length
+      flag
+      lastPortCall {
+        startDate
+      }
+      subClass
+      complianceRisk {
+        isSanctioned
+        riskySince
+        buildingBlocks {
+          name
+          count
+          program
+          level
+        }
+      }
+      smugglingRisk {
+        score
+        level
+        riskySince
+      }
+    }
+  }
+}'''
+
+def vessels_in_port_input(polygonID:str,limit:int,offset:int)->dict:
+  return {
+  "input": {
+    "polygonId": polygonID,
+    "limit": limit,
+    "offset": offset
+  }
+}

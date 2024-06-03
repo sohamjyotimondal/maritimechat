@@ -4,6 +4,7 @@ from typing import List
 from langchain.utils.openai_functions import convert_pydantic_to_openai_function
 from tokenizer import GraphQLClient
 from risks import Query
+import pandas as pd
 
 from typing import Optional
 from openai import OpenAI
@@ -81,8 +82,8 @@ class vesselsByImos(BaseTool):
 
 class getAreaPolygonId(BaseTool):
     '''Use this to get the polygon id of a given area.
-    Mention the areatype as 'Port' or 'Country' and the area as the name of the place s
-    it is absolutely necessary'''
+    Mention the areatype as 'Port' or 'Country' and the area as the name of the place
+    '''
     name="getAreaPolygonId"
     description="This tool is used to get a list of polygon ids of any given area. Use when the name of a place is given"
 
@@ -91,13 +92,41 @@ class getAreaPolygonId(BaseTool):
         if area is None:
             return "Ask user this question : What Areas do you want the search to be in?"
         else :
-            if area.lower() == "port":
-                return {"data":{"response":"5358fc78b68ca120a07dbb89"}}
-            elif areaType.lower() == "country":
-                return {"data":{"response":"5358fc78b68ca120a07dbb89"}}
+            df=pd.read_csv('areaspermitted.csv')
+            #select te row where the country areaType column is equal to the area input given
+            df=df[df['areaType']=='Port']
+            #return id column of the df as a list wherever the country column is equal to the area input given
+            if areaType=='country':
+                data= df['id'][df['country']==area].tolist() 
+                if data==[]:
+                    data="No data found for the given area as it is wrong ask user to provide a valid area name"  
+                return {"data":{"response":data}}
+            elif areaType=='port': #return id column wherever name matches and area type is port
+                data=df['id'][df['name']==area].tolist() 
+                if data==[]:
+                    data="No data found for the given area as it is wrong ask user to provide a valid area name" 
+                return {"data":{"response":data}}
+
+class vesselsInPort(BaseTool):
+    '''This tool is used to get the vessels in a port within a polygon. The input is the polygon id of the port, the limit of the activities to return which is default to 100, and the offset to start the activities from which is default to 0. The output is the response from the graphql endpoint with the vessels in the port.'''
+    name="vesselsInPort"
+    description="This tool is used to get the vessels in a port within a given timeframe and a polygon. Use when the polygon id of the port is given"
+
+    def _run(self, polygonID: str, limit: int=100, offset: int=0):
+        url = os.getenv("URL")
+        clientID = os.getenv("CLIENT_ID")
+        client_secret = os.getenv("CLIENT_SECRET")
+        interval = os.getenv("INTERVAL")
+        query=Query(GraphQLClient(url, clientID, client_secret,interval=interval))
+        response=query.vesselsInPort(polygonID,limit,offset)
+        response=response.json()
+        return str(response)
+
 
 class Decompose(BaseTool):
-    name="Decomposequestion"
+    '''always use this tools to decompose a question  into smaller parts that require the other tools
+    This helps to solve the question by dealing with the subquestions.'''
+    name="Decompose_question"
     description="always Use this tool to first decompose a question when it is regarding maritime insights and vessel risk or location into subquestions that can be answered by the graphql endpoint."
     # question: str = Field(description="The question to decompose")
 
@@ -106,5 +135,5 @@ class Decompose(BaseTool):
         response = decomposer.decompose_question(question)
         return response.model_dump_json()
     
-alltools=[getAreaPolygonId(),Decompose(),vesselsByImos()]
+alltools=[getAreaPolygonId(),vesselsByImos(),vesselsInPort()]
 decomposetools=[Decompose()]

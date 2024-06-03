@@ -15,7 +15,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 class chatBot:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4", api_key=api_key,temperature=0)
+        self.llm = ChatOpenAI(model="gpt-4o", api_key=api_key,temperature=0)
         self.chat_history = [AIMessage(content="Hello! How can I assist you today?")]
         agent = create_structured_chat_agent(self.llm, alltools, prompt=self._makeprompt_(self.chat_history))
         self.chatbot = AgentExecutor(agent=agent,tools=alltools, verbose=True,return_intermediate_steps=True,
@@ -60,7 +60,7 @@ class chatBot:
                 }}
                 ```
 
-                Follow this format:
+                Follow this format: Make sure to respond in this format always when you reach the final answer
 
                 Question: input question to answer
                 Thought: consider previous and subsequent steps
@@ -113,5 +113,5 @@ class chatBot:
     
 if __name__ == "__main__":
     bot = chatBot()
-    print(bot.get_response("What is the risk with vessel 9746619"))
+    print(bot.get_response("What is the risk with vessel"))
     print(bot.chat_history)

@@ -131,8 +131,46 @@ class Query():
             # response = await asyncio.to_thread(requests.post, self.client.url, json=payload, headers=headers)
             response=requests.post(self.client.url, json=payload, headers=headers)
             return response
-
+        
         return send_request()
+
+    def vesselsInPort(self,polygonID:str,limit:int=100,offset:int=0):
+        '''This async function sends a request to the graphql endpoint to get the vessels in a port within a given timeframe and a polygon
+        
+        Arguments
+        ----------------
+        polygonID: str
+            The polygon id of the port
+        timeRange: dict
+            The time range of the activities
+        limit: int
+            The number of activities to return. The max limit is 500
+        offset: int
+            The offset to start the activities from
+
+        Returns
+        ----------------
+            dict: The response from the graphql endpoint with the vessels in the port
+        '''
+        @self.client.check_token(makelogs=True) #This decorator checks if the token is valid and if not, it refreshes the token
+        def send_request():
+            query_string=vessels_in_port_query_string()
+            variables = vessels_in_port_input(polygonID,limit,offset)
+            payload = {
+                "query": query_string,
+                "variables": variables
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.client.auth_token}"
+            }
+
+            # response = await asyncio.to_thread(requests.post, self.client.url, json=payload, headers=headers)
+            response=requests.post(self.client.url, json=payload, headers=headers)
+            return response
+        
+        return send_request()
+    
 
 if __name__ == "__main__":
     #get the environment variables
@@ -142,7 +180,7 @@ if __name__ == "__main__":
     interval=os.getenv("REQUEST_INTERVAL")
 
     query=Query(GraphQLClient(url, clientID, client_secret,interval=interval))#make a Query object with  GraphQl client object
-    print(query.check_risk("979").json())
+    print(query.vesselsInPort("560414d6329691f06a1f4632").json())
     # response = asyncio.run(query.check_risk("9738909")) #get the risk associated with the vessel with IMO number 9738909 by using the query object
     # activity=asyncio.run(query.activities(imo="9738909",from_date="2021-01-01",to_date="2021-12-31",polygon=[[113.258057,19.823202],[113.258057,23.007113],[120.629883,23.007113],[120.629883,19.823202],[113.258057,19.823202]]))
     

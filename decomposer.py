@@ -1,6 +1,6 @@
 import instructor
 from openai import OpenAI
-from typing import List
+from typing import List, Dict,Optional, Union
 from pydantic import BaseModel, Field
 from datetime import date
 
@@ -8,14 +8,17 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-
+class Arguments(BaseModel):
+    '''This class is used to define the arguments that are required to send in the query request to the endpoint'''
+    key: str = Field(..., description="The name of the argument")
+    value: Union[str,List[str]] = Field(..., description="The value of the argument")
 
 class Endpoints(BaseModel):
     
     id: int = Field(..., description="A unique identifier for the question")
     query: str = Field(..., description="The question decomposited as much as possible")
-    endpoint: List[str] = Field(..., description="The graphql endpoint that is required to fetch data from the ai to answer this specific question")
-    arguments: List[str] = Field(..., description="The parameters that are required to send in the query request to the endpoint")
+    endpoint: str = Field(..., description="The graphql endpoint that is required to fetch data from the ai to answer this specific question")
+    arguments: List[Arguments]= Field(..., description="The parameters that are required to send in the query request to the endpoint. The paramter is a dict with the paramter name as the key and the value you make out")
     subquestions: List[int] = Field(
         default_factory=list,
         description="The other endpoints it relies on to get the data from to answer the question. Check each of the arguments of the endpoint to check if it is available if not add a subquestion to get the data from the other point that it can be retrived from",
@@ -27,6 +30,7 @@ class QueryPlan(BaseModel):
         ..., description="""The plan to answer the root question by querying different endpoints available in the graphql api
         Make sure every information is present and to answer the question and decompose the question properly into each of it's respective endpoints"""
     )
+    route: List[str] = Field(..., description="The route that the query plan takes to answer the question eg: [1,2,3,4]")
 
 class Decomposer():
     '''This class is responsible for decomposing the question into subquestions that can be answered by
@@ -65,7 +69,7 @@ class Decomposer():
             ]
             }'''
         retrival = self.client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             response_model=QueryPlan,
             temperature=0,
             messages= [
@@ -87,10 +91,15 @@ class Decomposer():
         """Query - returns information on a multiple vessels by their IMO"""
         vesselsByIMOs(imos:
         Name	Type	Description
-        imos	[String!]!	The Integrated Marine Observing System (IMOS) unique ID.): [VesselIntelligence]
+        imos	[String!]!	The Integrated Marine Observing System (IMOS) unique ID.): [VesselIntelligence] --provide the imos as a list of strings
         vesselsByMMSI(mmsi: String!): [VesselIntelligence!]!
         portExpectedArrivals(input: PortExpectedArrivalsInput!): PortExpectedArrivalsConnection!
-        vesselsInPort(input: VesselsInPortInput!): VesselsInPortConnection!
+        vesselsInPort(input: 
+        Name	Type	Description
+        limit	PositiveInt!	The maximal number of records to return.
+        offset	NonNegativeInt!	The number of returned records to skip from the beginning of the record list.
+        polygonId	ObjectId!	The unique Windward assigned ID of the port polygon.
+        timeRange	DateTimeRange	The time range within which the vessels have visited the port.): VesselsInPortConnection!
         departedFromPortVessels(input: DepartedFromPortVesselsInput!): DepartedFromPortVesselsConnection!
         vesselPropertyChanges(input: VesselPropertyChangesInput!): VesselPropertyChangesConnection!
 
@@ -112,7 +121,10 @@ class Decomposer():
         activitiesInPolygon(input: ActivitiesInPolygonInput!): ActivitiesInPolygonConnection!
         vesselTimeline(input: VesselTimelineInput!): VesselTimelineConnection!
         advancedVesselsSearch(input: AdvancedVesselSearchInput!): SearchResultsOutput
-        areas(filter: AreaFilterInput!): [FeatureObject] --always required when an area is given to know it's unique polugonid
+        getAreaPolygonId(input:
+        Name	Type	Description
+        area    string  The name of the area to search
+        areaType    string      The srea type either port or country.): [FeatureObject] --always required when an area is given to know it's unique polugonid
         searchCompaniesByTerm(searchTerm: String!): [Company!]!
         projectVOIs: [VOI]
         voiAuditLogs(input: VOIAuditLogsInput!): VOIAuditLogsConnection!
@@ -195,3 +207,9 @@ class Decomposer():
         )
 
         return(retrival)
+    
+if __name__ == "__main__":
+    decomposer = Decomposer()
+    question = "What are the risky vessels in the area of the port of Singapore?"
+    plan = decomposer.decompose_question(question)
+    print(plan)
